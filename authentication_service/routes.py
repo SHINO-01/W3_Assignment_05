@@ -1,52 +1,47 @@
 from flask import request, jsonify
-from werkzeug.security import check_password_hash
-import requests
-
+import jwt
+import datetime
+from shared.config import Config
 from . import app
-from .utils import generate_token, validate_token
 
-@app.route('/')
+@app.route("/")
 def home():
     return "Welcome to the Authentication Service!"
 
-@app.route('/login', methods=['POST'])
-def login():
-
+@app.route("/generate_token", methods=["POST"])
+def generate_token():
+    """
+    Generate a JWT token.
+    """
     data = request.get_json()
-    required_fields = ['email', 'password']
-    if not all(field in data for field in required_fields):
-        return jsonify({'message': 'Missing email or password'}), 400
+    email = data.get("email")
+    role = data.get("role")
 
-    email = data['email']
-    password = data['password']
+    if not email or not role:
+        return jsonify({"message": "Email and role are required"}), 400
 
-    # Get user info from User Service
-    user_service_url = 'http://localhost:5000/get_user'
-    response = requests.post(user_service_url, json={'email': email})
-    if response.status_code != 200:
-        return jsonify({'message': 'User not found'}), 404
-
-    user = response.json()
-    hashed_password = user['password']
-    if not check_password_hash(hashed_password, password):
-        return jsonify({'message': 'Invalid credentials'}), 401
-
-    token = generate_token(user)
-    return jsonify({'access_token': token}), 200
-
-@app.route('/validate', methods=['GET'])
-def validate():
-    
-    token = request.headers.get('Authorization')
-    if not token:
-        return jsonify({'message': 'Token is missing'}), 401
-
-    payload = validate_token(token)
-    if not payload:
-        return jsonify({'message': 'Token is invalid or expired'}), 401
-
-    user_info = {
-        'email': payload['email'],
-        'role': payload['role']
+    payload = {
+        "email": email,
+        "role": role,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1),
     }
-    return jsonify(user_info), 200
+    token = jwt.encode(payload, Config.SECRET_KEY, algorithm="HS256")
+    return jsonify({"access_token": token}), 200
+
+@app.route("/validate", methods=["GET"])
+def validate():
+    """
+    Validate the provided JWT token.
+    """
+    token = request.headers.get("Authorization")
+    if not token:
+        return jsonify({"message": "Token is missing"}), 401
+
+    token = token.replace("Bearer ", "")
+    try:
+        payload = jwt.decode(token, Config.SECRET_KEY, algorithms=["HS256"])
+        return jsonify(payload), 200
+    except jwt.ExpiredSignatureError:
+        return jsonify({"message": "Token has expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"message": "Invalid token"}), 401

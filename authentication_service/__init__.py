@@ -3,10 +3,7 @@ from shared.config import Config
 from flasgger import Swagger
 
 app = Flask(__name__)
-app.config['SWAGGER'] = {
-    'title': 'Authentication Service API',
-    'uiversion': 3
-}
+app.config['SECRET_KEY'] = Config.SECRET_KEY
 swagger = Swagger(app)
 
 from . import routes

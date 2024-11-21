@@ -1,77 +1,86 @@
 from flask import request, jsonify
 import requests
-
 from . import app
 from .models import destinations
 
-@app.route('/')
+AUTH_SERVICE_URL = "http://localhost:5001"
+
+@app.route("/")
 def home():
     return "Welcome to the Destination Service!"
 
-@app.route('/destinations', methods=['GET'])
+@app.route("/destinations", methods=["GET"])
 def get_destinations():
-    
+    """
+    Retrieve all destinations.
+    """
     return jsonify(list(destinations.values())), 200
 
-@app.route('/destinations', methods=['POST'])
+@app.route("/destinations", methods=["POST"])
 def add_destination():
-    
-    token = request.headers.get('Authorization')
+    """
+    Add a new destination (Admin only).
+    """
+    token = request.headers.get("Authorization")
     if not token:
-        return jsonify({'message': 'Token is missing'}), 401
+        return jsonify({"message": "Token is missing"}), 401
 
-    # Validate token with Authentication Service
-    auth_service_url = 'http://localhost:5001/validate'
-    headers = {'Authorization': token}
-    auth_response = requests.get(auth_service_url, headers=headers)
+    # Validate token via Authentication Service
+    token = token.replace("Bearer ", "")
+    response = requests.get(f"{AUTH_SERVICE_URL}/validate", headers={"Authorization": token})
 
-    if auth_response.status_code != 200:
-        return jsonify({'message': 'Token is invalid'}), 401
+    if response.status_code != 200:
+        return jsonify({"message": "Token is invalid"}), 401
 
-    user_info = auth_response.json()
-    if user_info['role'] != 'Admin':
-        return jsonify({'message': 'Unauthorized action'}), 403
+    # Extract user details from the token payload
+    user_info = response.json()
+    if user_info["role"] != "Admin":
+        return jsonify({"message": "Unauthorized action: Admins only"}), 403
 
+    # Process the destination addition
     data = request.get_json()
-    required_fields = ['id', 'name', 'description', 'location', 'price_per_night']
+    required_fields = ["id", "name", "description", "location", "price_per_night"]
+
     if not all(field in data for field in required_fields):
-        return jsonify({'message': 'Missing fields in destination data'}), 400
+        return jsonify({"message": "Missing required fields"}), 400
 
-    dest_id = data['id']
-    if dest_id in destinations:
-        return jsonify({'message': 'Destination ID already exists'}), 400
-
-    destinations[dest_id] = {
-        'id': dest_id,
-        'name': data['name'],
-        'description': data['description'],
-        'location': data['location'],
-        'price_per_night': data['price_per_night']
-    }
-
-    return jsonify({'message': 'Destination added successfully', 'id': dest_id}), 201
-
-@app.route('/destinations/<destination_id>', methods=['DELETE'])
-def delete_destination(destination_id):
-    
-    token = request.headers.get('Authorization')
-    if not token:
-        return jsonify({'message': 'Token is missing'}), 401
-
-    # Validate token with Authentication Service
-    auth_service_url = 'http://localhost:5001/validate'
-    headers = {'Authorization': token}
-    auth_response = requests.get(auth_service_url, headers=headers)
-
-    if auth_response.status_code != 200:
-        return jsonify({'message': 'Token is invalid'}), 401
-
-    user_info = auth_response.json()
-    if user_info['role'] != 'Admin':
-        return jsonify({'message': 'Unauthorized action'}), 403
-
+    destination_id = data["id"]
     if destination_id in destinations:
-        del destinations[destination_id]
-        return jsonify({'message': 'Destination deleted successfully'}), 200
-    else:
-        return jsonify({'message': 'Destination not found'}), 404
+        return jsonify({"message": "Destination ID already exists"}), 400
+
+    destinations[destination_id] = {
+        "id": destination_id,
+        "name": data["name"],
+        "description": data["description"],
+        "location": data["location"],
+        "price_per_night": data["price_per_night"]
+    }
+    return jsonify({"message": "Destination added successfully"}), 201
+
+@app.route("/destinations/<destination_id>", methods=["DELETE"])
+def delete_destination(destination_id):
+    """
+    Delete a destination (Admin only).
+    """
+    token = request.headers.get("Authorization")
+    if not token:
+        return jsonify({"message": "Token is missing"}), 401
+
+    # Validate token via Authentication Service
+    token = token.replace("Bearer ", "")
+    response = requests.get(f"{AUTH_SERVICE_URL}/validate", headers={"Authorization": token})
+
+    if response.status_code != 200:
+        return jsonify({"message": "Token is invalid"}), 401
+
+    # Extract user details from the token payload
+    user_info = response.json()
+    if user_info["role"] != "Admin":
+        return jsonify({"message": "Unauthorized action: Admins only"}), 403
+
+    # Process the destination deletion
+    if destination_id not in destinations:
+        return jsonify({"message": "Destination not found"}), 404
+
+    del destinations[destination_id]
+    return jsonify({"message": "Destination deleted successfully"}), 200

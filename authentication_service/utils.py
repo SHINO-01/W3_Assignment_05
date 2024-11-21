@@ -1,20 +1,19 @@
-from shared.config import Config
 import jwt
 import datetime
+from shared.config import Config
 
-def generate_token(user_info):
-    token = jwt.encode({
-        'email': user_info['email'],
-        'role': user_info['role'],
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-    }, Config.SECRET_KEY, algorithm='HS256')
-    return token
+def generate_token(email, role):
+    payload = {
+        "email": email,
+        "role": role,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+    }
+    return jwt.encode(payload, Config.SECRET_KEY, algorithm="HS256")
 
 def validate_token(token):
     try:
-        payload = jwt.decode(token, Config.SECRET_KEY, algorithms=['HS256'])
-        return payload
+        return jwt.decode(token, Config.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
-        return None
+        return {"message": "Token has expired"}
     except jwt.InvalidTokenError:
-        return None
+        return {"message": "Invalid token"}
