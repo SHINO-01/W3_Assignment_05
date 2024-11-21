@@ -6,6 +6,10 @@ import requests
 from . import app
 from .models import users
 
+@app.route('/')
+def home():
+    return "Welcome to the User Service!"
+
 @app.route('/register', methods=['POST'])
 def register():
 

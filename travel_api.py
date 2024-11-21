@@ -6,7 +6,7 @@ if __name__ == '__main__':
     import threading
 
     def run_app(app, port):
-        app.run(port=port)
+        app.run(host='localhost', port=port)
 
     threading.Thread(target=run_app, args=(user_app, 5000)).start()
     threading.Thread(target=run_app, args=(auth_app, 5001)).start()

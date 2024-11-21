@@ -5,6 +5,10 @@ import requests
 from . import app
 from .utils import generate_token, validate_token
 
+@app.route('/')
+def home():
+    return "Welcome to the Authentication Service!"
+
 @app.route('/login', methods=['POST'])
 def login():
 
