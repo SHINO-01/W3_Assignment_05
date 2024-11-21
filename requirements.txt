@@ -1,0 +1,7 @@
+Flask==2.0.1
+requests==2.25.1
+Werkzeug==2.0.1
+Flask-OAuthlib==0.9.5
+flasgger==0.9.5
+python-dotenv==0.17.1
+PyJWT==2.1.0
