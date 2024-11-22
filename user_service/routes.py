@@ -240,4 +240,11 @@ def profile():
     if not user:
         return jsonify({"message": "User not found"}), 404
 
-    return jsonify(user), 200
+    # Filter the response to include only name, email, and role
+    filtered_user = {
+        "name": user["name"],
+        "email": user["email"],
+        "role": user["role"]
+    }
+
+    return jsonify(filtered_user), 200
