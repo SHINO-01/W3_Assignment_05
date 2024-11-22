@@ -4,6 +4,8 @@ import requests
 from . import app
 from .models import users
 
+current_token = None
+
 AUTH_SERVICE_URL = "http://localhost:5001"
 
 @app.route("/")
@@ -62,23 +64,54 @@ def register():
             message:
               type: string
               example: "User already exists"
+      403:
+        description: Only Authenticated Admins can create Admin Accounts
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Forbidden Action: Not Logged in as Admin"         
     """
+
+    role = None
+    global current_token
+    if current_token:
+        current_token = current_token.replace("Bearer ", "")
+        # Validate token via Authentication Service
+        response = requests.get(f"{AUTH_SERVICE_URL}/validate", headers={"Authorization": f"Bearer {current_token}"})
+        if response.status_code != 200:
+            return jsonify({"message": "Invalid or expired token"}), 401
+
+        # Decode user role from the token
+        user_info = response.json()
+        role = user_info.get("role")
+
+    # Get the request body
     data = request.get_json()
     required_fields = ["name", "email", "password", "role"]
 
     if not all(field in data for field in required_fields):
         return jsonify({"message": "Missing required fields"}), 400
 
+    # Prevent duplicate user creation
     email = data["email"]
     if email in users:
         return jsonify({"message": "User already exists"}), 400
 
+    # Check if attempting to create an admin account
+    if data["role"] == "Admin":
+        if not current_token or role != "Admin":
+            return jsonify({"message": "Only admins can create admin accounts"}), 403
+
+    # Create the new user
     users[email] = {
         "name": data["name"],
         "email": email,
         "password": generate_password_hash(data["password"]),
         "role": data["role"]
     }
+
     return jsonify({"message": "User registered successfully"}), 201
 
 #============================================/LOGIN=========================================================
