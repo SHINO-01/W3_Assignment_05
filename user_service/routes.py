@@ -65,7 +65,7 @@ def register():
               type: string
               example: "User already exists"
       403:
-        description: Only Authenticated Admins can create Admin Accounts
+        description: PROTECTION VIOLATION: Only Admins can create Admin Accounts
         schema:
           type: object
           properties:
