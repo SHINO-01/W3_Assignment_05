@@ -10,10 +10,58 @@ AUTH_SERVICE_URL = "http://localhost:5001"
 def home():
     return "Welcome to the User Service!"
 
+#===============================================/REGISTER======================================================
 @app.route("/register", methods=["POST"])
 def register():
     """
-    Register a new user.
+    Register a new user
+    ---
+    tags:
+      - User Service
+    summary: Create new user
+    description: Register a new user with name, email, password and role
+    parameters:
+      - in: body
+        name: body
+        description: User object that needs to be registered
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "John Doe"
+            email:
+              type: string
+              example: "john@example.com"
+            password:
+              type: string
+              example: "password123"
+            role:
+              type: string
+              example: "User"
+          required:
+            - name
+            - email
+            - password
+            - role
+    responses:
+      201:
+        description: User registered successfully
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "User registered successfully"
+      400:
+        description: Missing required fields or user already exists
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "User already exists"
     """
     data = request.get_json()
     required_fields = ["name", "email", "password", "role"]
@@ -33,10 +81,59 @@ def register():
     }
     return jsonify({"message": "User registered successfully"}), 201
 
+#============================================/LOGIN=========================================================
+
 @app.route("/login", methods=["POST"])
 def login():
     """
-    Authenticate user and request a JWT token from the Authentication Service.
+    Authenticate user and get token from the authentication server
+    ---
+    tags:
+      - User Service
+    summary: Login user
+    description: Authenticate with email and password to receive JWT token
+    parameters:
+      - in: body
+        name: body
+        description: User credentials
+        required: true
+        schema:
+          type: object
+          properties:
+            email:
+              type: string
+              example: "john@example.com"
+            password:
+              type: string
+              example: "password123"
+          required:
+            - email
+            - password
+    responses:
+      200:
+        description: Successfully authenticated
+        schema:
+          type: object
+          properties:
+            access_token:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      400:
+        description: Missing email or password
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Email and password are required"
+      401:
+        description: Invalid credentials
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Invalid email or password"
     """
     data = request.get_json()
     email = data.get("email")
@@ -49,31 +146,92 @@ def login():
     if not user or not check_password_hash(user["password"], password):
         return jsonify({"message": "Invalid email or password"}), 401
 
-    # Request token from Authentication Service
-    response = requests.post(f"{AUTH_SERVICE_URL}/generate_token", json={
+    # Request token from the authentication server
+    auth_response = requests.post(f"{AUTH_SERVICE_URL}/generate_token", json={
         "email": user["email"],
         "role": user["role"]
     })
 
-    if response.status_code == 200:
-        return jsonify(response.json()), 200
+    if auth_response.status_code == 200:
+        # Extract and store the token
+        global current_token
+        current_token = auth_response.json().get("access_token")
+        if current_token:
+            return jsonify({"access_token": current_token}), 200
+        else:
+            return jsonify({"message": "Token generation failed"}), 500
+    elif auth_response.status_code == 401:
+        return jsonify({"message": "Invalid email or password"}), 401
     else:
-        return jsonify({"message": "Error generating token"}), 500
+        return jsonify({"message": "Authentication server error"}), 500
+
+#======================================================/PROFILE================================================
 
 @app.route("/profile", methods=["GET"])
 def profile():
     """
-    Get user profile information.
+    Get user profile information
+    ---
+    tags:
+      - User Service
+    summary: Get user profile
+    description: Retrieve the authenticated user's profile information
+    parameters:
+      - in: header
+        name: Authorization
+        description: JWT token
+        required: true
+        type: string
+        default: "Bearer "
+    responses:
+      200:
+        description: Successfully retrieved user profile
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "John Doe"
+            email:
+              type: string
+              example: "john@example.com"
+            role:
+              type: string
+              example: "User"
+      401:
+        description: Missing authentication token
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Token is missing"
+      403:
+        description: Invalid token
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Token is invalid"
+      404:
+        description: User not found
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "User not found"
     """
-    token = request.headers.get("Authorization")
-    if not token:
-        return jsonify({"message": "Token is missing"}), 401
+    global current_token
+    if not current_token:
+        return jsonify({"message": "Not logged in or token missing"}), 401
 
-    token = token.replace("Bearer ", "")
     # Validate token via Authentication Service
-    response = requests.get(f"{AUTH_SERVICE_URL}/validate", headers={"Authorization": token})
+    response = requests.get(f"{AUTH_SERVICE_URL}/validate", headers={"Authorization": f"Bearer {current_token}"})
 
     if response.status_code != 200:
+        current_token = None  # Clear invalid token
         return jsonify({"message": "Token is invalid"}), 401
 
     user_info = response.json()
