@@ -4,40 +4,194 @@ from . import app
 from .models import destinations
 
 AUTH_SERVICE_URL = "http://localhost:5001"
+USER_SERVICE_URL = "http://localhost:5000"
+
+global_token = None
+
+
+def fetch_token_from_user_service():
+    """
+    Fetch the token from the User Service's hidden internal endpoint and store it in the global variable.
+    """
+    global global_token
+    try:
+        response = requests.get(f"{USER_SERVICE_URL}/_internal/get_token", headers={"X-Internal-Request": "true"})
+        print(f"Fetch Token Response: {response.status_code}, {response.text}")  # Debug: Log the response
+
+        if response.status_code == 200:
+            token = response.json().get("access_token")
+            if token:
+                global_token = f"Bearer {token}"
+                print(f"Fetched and Stored Token: {global_token}")  # Debug: Log the fetched token
+            else:
+                raise Exception("No token returned by User Service")
+        else:
+            raise Exception("Failed to fetch token from User Service.")
+    except Exception as e:
+        raise Exception(f"Token fetch failed: {str(e)}")
+
+
+def validate_token(required_role=None):
+    """
+    Validates the token via the Authentication Service and optionally checks for a required role.
+    Uses the global token for validation.
+    """
+    global global_token
+
+    # Ensure the token is available
+    if not global_token:
+        fetch_token_from_user_service()
+
+    # Extract the token without the "Bearer " prefix
+    token = global_token.replace("Bearer ", "")
+
+    # Debug: Log the token to be validated
+    print(f"Token for Validation: {token}")
+
+    # Validate token via Authentication Service
+    response = requests.get(f"{AUTH_SERVICE_URL}/validate", headers={"Authorization": f"Bearer {token}"})
+    
+    # Debug: Log the validation response
+    print(f"Validation Response: {response.status_code}, {response.text}")
+
+    if response.status_code != 200:
+        raise Exception("Invalid or expired token")
+
+    user_info = response.json()
+
+    # Debug: Log the user info
+    print(f"User Info from Token: {user_info}")
+
+    # Check the user's role if required
+    if required_role and user_info.get("role") != required_role:
+        raise Exception(f"Unauthorized action: {required_role}s only")
+
+    return user_info
+
+
 
 @app.route("/")
 def home():
+    """
+    Welcome route for the service.
+    """
     return "Welcome to the Destination Service!"
+
 
 @app.route("/destinations", methods=["GET"])
 def get_destinations():
     """
-    Retrieve all destinations.
+     Retrieve all destinations.
+    - ID field is visible only to admins.
+    ---
+    tags:
+      - Destinations
+    summary: Retrieve all destinations
+    description: Retrieve a list of all destinations. Admins see the `id` field, while regular users do not.
+    parameters:
+      - in: header
+        name: Authorization
+        required: false
+        type: string
+        description: Bearer token for authentication
+    responses:
+      200:
+        description: List of destinations
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: "dest1"
+              name:
+                type: string
+                example: "Beach Resort"
+              description:
+                type: string
+                example: "A beautiful beach resort."
+              location:
+                type: string
+                example: "Maldives"
+              price_per_night:
+                type: number
+                example: 150
     """
-    return jsonify(list(destinations.values())), 200
+    # Validate token if present
+    try:
+        # Validate token and fetch user info
+        user_info = validate_token()
+        role = user_info.get("role")
+    except Exception as e:
+        return jsonify({"message": str(e)}), 401
+
+    # Prepare the destinations list
+    if role == "Admin":
+        # Admins see the full list with IDs
+        return jsonify(list(destinations.values())), 200
+    else:
+        # Regular users see destinations without the `id` field
+        filtered_destinations = [
+            {key: value for key, value in dest.items() if key != "id"}
+            for dest in destinations.values()
+        ]
+        return jsonify(filtered_destinations), 200
+
 
 @app.route("/destinations", methods=["POST"])
 def add_destination():
     """
     Add a new destination (Admin only).
+    ---
+    tags:
+      - Destinations
+    summary: Add a new destination
+    description: Admins can add a new destination to the service.
+    parameters:
+      - in: header
+        name: Authorization
+        required: true
+        type: string
+        default: "Bearer "
+        description: Bearer token for authentication
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "SWZ"
+            name:
+              type: string
+              example: "Mountain Retreat"
+            description:
+              type: string
+              example: "A serene mountain retreat."
+            location:
+              type: string
+              example: "Switzerland"
+            price_per_night:
+              type: number
+              example: 200
+    responses:
+      201:
+        description: Destination added successfully
+      400:
+        description: Missing required fields or duplicate destination ID
+      401:
+        description: Missing or invalid token
+      403:
+        description: Unauthorized action
     """
-    token = request.headers.get("Authorization")
-    if not token:
-        return jsonify({"message": "Token is missing"}), 401
+    try:
+        # Validate token and ensure the user is an admin
+        user_info = validate_token(required_role="Admin")
+    except Exception as e:
+        return jsonify({"message": str(e)}), 403
 
-    # Validate token via Authentication Service
-    token = token.replace("Bearer ", "")
-    response = requests.get(f"{AUTH_SERVICE_URL}/validate", headers={"Authorization": token})
-
-    if response.status_code != 200:
-        return jsonify({"message": "Token is invalid"}), 401
-
-    # Extract user details from the token payload
-    user_info = response.json()
-    if user_info["role"] != "Admin":
-        return jsonify({"message": "Unauthorized action: Admins only"}), 403
-
-    # Process the destination addition
     data = request.get_json()
     required_fields = ["id", "name", "description", "location", "price_per_night"]
 
@@ -57,28 +211,45 @@ def add_destination():
     }
     return jsonify({"message": "Destination added successfully"}), 201
 
+
 @app.route("/destinations/<destination_id>", methods=["DELETE"])
 def delete_destination(destination_id):
     """
     Delete a destination (Admin only).
+    ---
+    tags:
+      - Destinations
+    summary: Delete a destination
+    description: Admins can delete a destination from the service.
+    parameters:
+      - in: header
+        name: Authorization
+        required: true
+        type: string
+        default: "Bearer "
+        description: Bearer token for authentication
+      - in: path
+        name: destination_id
+        required: true
+        type: string
+        defaul: "SWZ"
+        description: ID of the destination to delete
+    responses:
+      200:
+        description: Destination deleted successfully
+      401:
+        description: Missing or invalid token
+      403:
+        description: Unauthorized action
+      404:
+        description: Destination not found
     """
-    token = request.headers.get("Authorization")
-    if not token:
-        return jsonify({"message": "Token is missing"}), 401
+    try:
+        # Validate token and ensure the user is an admin
+        validate_token(required_role="Admin")
+    except Exception as e:
+        return jsonify({"message": str(e)}), 403
 
-    # Validate token via Authentication Service
-    token = token.replace("Bearer ", "")
-    response = requests.get(f"{AUTH_SERVICE_URL}/validate", headers={"Authorization": token})
-
-    if response.status_code != 200:
-        return jsonify({"message": "Token is invalid"}), 401
-
-    # Extract user details from the token payload
-    user_info = response.json()
-    if user_info["role"] != "Admin":
-        return jsonify({"message": "Unauthorized action: Admins only"}), 403
-
-    # Process the destination deletion
     if destination_id not in destinations:
         return jsonify({"message": "Destination not found"}), 404
 

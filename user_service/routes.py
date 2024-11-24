@@ -168,6 +168,7 @@ def login():
               type: string
               example: "Invalid email or password"
     """
+    global current_token
     data = request.get_json()
     email = data.get("email")
     password = data.get("password")
@@ -187,7 +188,7 @@ def login():
 
     if auth_response.status_code == 200:
         # Extract and store the token
-        global current_token
+        #global current_token
         current_token = auth_response.json().get("access_token")
         if current_token:
             return jsonify({"access_token": current_token}), 200
@@ -281,3 +282,17 @@ def profile():
     }
 
     return jsonify(filtered_user), 200
+#=======================================================Internal==============================================================
+@app.route("/_internal/get_token", methods=["GET"])
+def _internal_get_token():
+    """
+    Hidden internal endpoint to get the current token.
+    """
+    if request.headers.get("X-Internal-Request") != "true":
+        return jsonify({"message": "Unauthorized"}), 403
+
+    global current_token
+    if not current_token:
+        return jsonify({"message": "No active token"}), 401
+
+    return jsonify({"access_token": current_token}), 200
