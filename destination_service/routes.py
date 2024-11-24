@@ -6,14 +6,10 @@ from .models import destinations
 AUTH_SERVICE_URL = "http://localhost:5001"
 USER_SERVICE_URL = "http://localhost:5000"
 
-global_token = None
-
-
 def fetch_token_from_user_service():
     """
-    Fetch the token from the User Service's hidden internal endpoint and store it in the global variable.
+    Fetch the token from the User Service's hidden internal endpoint.
     """
-    global global_token
     try:
         response = requests.get(f"{USER_SERVICE_URL}/_internal/get_token", headers={"X-Internal-Request": "true"})
         print(f"Fetch Token Response: {response.status_code}, {response.text}")  # Debug: Log the response
@@ -21,8 +17,8 @@ def fetch_token_from_user_service():
         if response.status_code == 200:
             token = response.json().get("access_token")
             if token:
-                global_token = f"Bearer {token}"
-                print(f"Fetched and Stored Token: {global_token}")  # Debug: Log the fetched token
+                print(f"Fetched Token: {token}")  # Debug: Log the fetched token
+                return f"Bearer {token}"
             else:
                 raise Exception("No token returned by User Service")
         else:
@@ -33,41 +29,40 @@ def fetch_token_from_user_service():
 
 def validate_token(required_role=None):
     """
-    Validates the token via the Authentication Service and optionally checks for a required role.
-    Uses the global token for validation.
+    Validates the token dynamically via the Authentication Service and optionally checks for a required role.
     """
-    global global_token
+    try:
+        # Fetch the token dynamically for every request
+        token = fetch_token_from_user_service()
 
-    # Ensure the token is available
-    if not global_token:
-        fetch_token_from_user_service()
+        # Strip "Bearer " prefix if present
+        token = token.replace("Bearer ", "")
 
-    # Extract the token without the "Bearer " prefix
-    token = global_token.replace("Bearer ", "")
+        # Debug: Log the token to be validated
+        print(f"Token for Validation: {token}")
 
-    # Debug: Log the token to be validated
-    print(f"Token for Validation: {token}")
+        # Validate token via Authentication Service
+        response = requests.get(f"{AUTH_SERVICE_URL}/validate", headers={"Authorization": f"Bearer {token}"})
 
-    # Validate token via Authentication Service
-    response = requests.get(f"{AUTH_SERVICE_URL}/validate", headers={"Authorization": f"Bearer {token}"})
-    
-    # Debug: Log the validation response
-    print(f"Validation Response: {response.status_code}, {response.text}")
+        # Debug: Log the validation response
+        print(f"Validation Response: {response.status_code}, {response.text}")
 
-    if response.status_code != 200:
-        raise Exception("Invalid or expired token")
+        if response.status_code != 200:
+            raise Exception("Invalid or expired token")
 
-    user_info = response.json()
+        user_info = response.json()
 
-    # Debug: Log the user info
-    print(f"User Info from Token: {user_info}")
+        # Debug: Log the user info
+        print(f"User Info from Token: {user_info}")
 
-    # Check the user's role if required
-    if required_role and user_info.get("role") != required_role:
-        raise Exception(f"Unauthorized action: {required_role}s only")
+        # Check the user's role if required
+        if required_role and user_info.get("role") != required_role:
+            raise Exception(f"Unauthorized action: {required_role}s only")
 
-    return user_info
-
+        return user_info
+    except Exception as e:
+        print(f"Token validation failed: {str(e)}")
+        raise Exception(str(e))
 
 
 @app.route("/")
