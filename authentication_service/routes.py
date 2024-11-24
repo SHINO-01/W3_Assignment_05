@@ -12,6 +12,44 @@ def home():
 def generate_token():
     """
     Generate a JWT token.
+    ---
+    tags:
+      - Authentication Service
+    summary: Generate a JWT token
+    description: Generate a JWT token for authentication using email and role.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            email:
+              type: string
+              example: "user@example.com"
+            role:
+              type: string
+              example: "Admin"
+          required:
+            - email
+            - role
+    responses:
+      200:
+        description: JWT token generated successfully
+        schema:
+          type: object
+          properties:
+            access_token:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      400:
+        description: Missing email or role
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Email and role are required"
     """
     data = request.get_json()
     email = data.get("email")
@@ -32,6 +70,41 @@ def generate_token():
 def validate():
     """
     Validate the provided JWT token.
+    ---
+    tags:
+      - Authentication Service
+    summary: Validate a JWT token
+    description: Validate a JWT token to verify its authenticity and extract the payload.
+    parameters:
+      - in: header
+        name: Authorization
+        required: true
+        type: string
+        default: "Bearer "
+        description: Bearer token for validation
+    responses:
+      200:
+        description: Token is valid
+        schema:
+          type: object
+          properties:
+            email:
+              type: string
+              example: "user@example.com"
+            role:
+              type: string
+              example: "Admin"
+            exp:
+              type: number
+              example: 1732485898
+      401:
+        description: Missing, expired, or invalid token
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Token has expired"
     """
     token = request.headers.get("Authorization")
     if not token:
