@@ -1,17 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Travel API Documentation</title>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }
-        h1, h2, h3 { color: #333; }
-        pre { background-color: #f4f4f4; padding: 10px; overflow-x: auto; }
-        code { background-color: #f4f4f4; padding: 2px 4px; }
-        ul { margin-bottom: 20px; }
-        li { margin-bottom: 10px; }
-    </style>
-</head>
+
 <body>
 
 <h1>Travel API Documentation</h1>
@@ -211,7 +198,7 @@
 
 <h3>Clone the Repository</h3>
 
-<pre><code>git clone https://github.com/yourusername/travel-api.git
+<pre><code>git clone https://github.com/SHINO-01/W3_Assignment_05.git
 cd travel-api
 </code></pre>
 
@@ -393,4 +380,3 @@ Authorization: Bearer &lt;admin_access_token&gt;
 <p>This project is licensed under the MIT License.</p>
 
 </body>
-</html>
