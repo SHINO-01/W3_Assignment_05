@@ -4,7 +4,7 @@
 <h1>Travel API Documentation</h1>
 
 <p>Welcome to the Travel API project! This documentation provides an overview of the microservices, their endpoints, functionalities, and instructions on how to set up, run, test, and use the application.</p>
-
+<p>MUST USE PYTHON V3.11 or older</p>
 <hr>
 
 <h2>Table of Contents</h2>
@@ -230,29 +230,13 @@ cd travel-api
 
 <p>The application consists of three separate services. Each service needs to be run in its own terminal window or process.</p>
 
-<h3>Start the Authentication Service</h3>
+<h3>Start the App</h3>
 
-<pre><code>cd authentication_service
-python app.py
+<pre><code>
+python travel_api.py
 </code></pre>
 
-<p>This will start the Authentication Service on <code>http://localhost:5001</code>.</p>
-
-<h3>Start the User Service</h3>
-
-<pre><code>cd ../user_service
-python app.py
-</code></pre>
-
-<p>This will start the User Service on <code>http://localhost:5000</code>.</p>
-
-<h3>Start the Destination Service</h3>
-
-<pre><code>cd ../destination_service
-python app.py
-</code></pre>
-
-<p>This will start the Destination Service on <code>http://localhost:5002</code>.</p>
+<p>This will start the Authentication Service on <code>http://localhost:5001</code>, User Service on <code>http://localhost:5000</code>, and the the Destination Service on <code>http://localhost:5002</code>.</p>
 
 <hr>
 
