@@ -12,57 +12,32 @@ def fetch_token_from_user_service():
     """
     try:
         response = requests.get(f"{USER_SERVICE_URL}/_internal/get_token", headers={"X-Internal-Request": "true"})
-        print(f"Fetch Token Response: {response.status_code}, {response.text}")  # Debug: Log the response
-
         if response.status_code == 200:
             token = response.json().get("access_token")
             if token:
-                print(f"Fetched Token: {token}")  # Debug: Log the fetched token
                 return f"Bearer {token}"
             else:
-                raise Exception("No token returned by User Service")
+                raise Exception("No active token returned by User Service.")
         else:
-            raise Exception("Failed to fetch token from User Service.")
+            response_text = response.text if isinstance(response.text, str) else str(response.text)
+            raise Exception(f"Failed to fetch token from User Service: {response_text}")
     except Exception as e:
         raise Exception(f"Token fetch failed: {str(e)}")
 
 
 def validate_token(required_role=None):
-    """
-    Validates the token dynamically via the Authentication Service and optionally checks for a required role.
-    """
     try:
-        # Fetch the token dynamically for every request
-        token = fetch_token_from_user_service()
-
-        # Strip "Bearer " prefix if present
-        token = token.replace("Bearer ", "")
-
-        # Debug: Log the token to be validated
-        print(f"Token for Validation: {token}")
-
-        # Validate token via Authentication Service
+        token = fetch_token_from_user_service().replace("Bearer ", "")
         response = requests.get(f"{AUTH_SERVICE_URL}/validate", headers={"Authorization": f"Bearer {token}"})
-
-        # Debug: Log the validation response
-        print(f"Validation Response: {response.status_code}, {response.text}")
-
         if response.status_code != 200:
             raise Exception("Invalid or expired token")
-
         user_info = response.json()
-
-        # Debug: Log the user info
-        print(f"User Info from Token: {user_info}")
-
-        # Check the user's role if required
         if required_role and user_info.get("role") != required_role:
             raise Exception(f"Unauthorized action: {required_role}s only")
-
         return user_info
     except Exception as e:
-        print(f"Token validation failed: {str(e)}")
-        raise Exception(str(e))
+        print(f"Token validation error: {e}")
+        raise
 
 
 @app.route("/")
@@ -115,18 +90,15 @@ def get_destinations():
     """
     # Validate token if present
     try:
-        # Validate token and fetch user info
         user_info = validate_token()
         role = user_info.get("role")
     except Exception as e:
+        print(f"Error in GET /destinations: {e}")
         return jsonify({"message": str(e)}), 401
 
-    # Prepare the destinations list
     if role == "Admin":
-        # Admins see the full list with IDs
         return jsonify(list(destinations.values())), 200
     else:
-        # Regular users see destinations without the `id` field
         filtered_destinations = [
             {key: value for key, value in dest.items() if key != "id"}
             for dest in destinations.values()
