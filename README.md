@@ -192,7 +192,7 @@
 <h3>Prerequisites</h3>
 
 <ul>
-    <li>Python 3.8 or higher installed on your system.</li>
+    <li>Python 3..11 or lower installed on your system.</li>
     <li>Git (optional, for cloning the repository).</li>
 </ul>
 
@@ -237,6 +237,7 @@ python travel_api.py
 </code></pre>
 
 <p>This will start the Authentication Service on <code>http://localhost:5001</code>, User Service on <code>http://localhost:5000</code>, and the the Destination Service on <code>http://localhost:5002</code>.</p>
+<p>use /apidocs after the <code>https://localhost:5000/apidocs</code> to access the flasgger UI for easy Testing and Visualization. eg. <code>http://localhost:5000/apidocs</code></p>
 
 <hr>
 
@@ -259,7 +260,24 @@ python travel_api.py
 
 <h2 id="usage-guide">Usage Guide</h2>
 
-<h3>1. Register a User</h3>
+<h3>1. Login to the Admin Account</h3>
+
+<p>Login as Admin to use Admin Only functions.</p>
+
+<pre><code>
+Content-Type: application/json
+
+{
+    "name": "Master Admin",
+    "email": "masteradmin@example.com",
+    "password": "Master@123",
+    "role": "Admin"
+}
+</code></pre>
+
+<p><strong>Note:</strong> To create an admin account, you must be logged in as an admin.</p>
+
+<h3>2. Register a User</h3>
 
 <p>Send a POST request to the User Service to register a new user.</p>
 
@@ -276,7 +294,7 @@ Content-Type: application/json
 
 <p><strong>Note:</strong> To create an admin account, you must be logged in as an admin.</p>
 
-<h3>2. Login a User</h3>
+<h3>3. Login a User</h3>
 
 <p>Authenticate the user and receive a JWT token.</p>
 
@@ -291,7 +309,7 @@ Content-Type: application/json
 
 <p>The response will include an <code>access_token</code> which you will use in subsequent requests.</p>
 
-<h3>3. Access User Profile</h3>
+<h3>4. Access User Profile</h3>
 
 <p>Retrieve the authenticated user's profile information.</p>
 
@@ -299,7 +317,7 @@ Content-Type: application/json
 Authorization: Bearer &lt;access_token&gt;
 </code></pre>
 
-<h3>4. View Destinations</h3>
+<h3>5. View Destinations</h3>
 
 <p>Get a list of all destinations.</p>
 
@@ -309,7 +327,7 @@ Authorization: Bearer &lt;access_token&gt; (optional)
 
 <p>If you provide a valid token, you will see destinations according to your role. Admins see all fields, while users do not see the <code>id</code> field.</p>
 
-<h3>5. Add a Destination (Admin Only)</h3>
+<h3>6. Add a Destination (Admin Only)</h3>
 
 <p>Add a new destination to the service.</p>
 
@@ -326,7 +344,7 @@ Content-Type: application/json
 }
 </code></pre>
 
-<h3>6. Delete a Destination (Admin Only)</h3>
+<h3>7. Delete a Destination (Admin Only)</h3>
 
 <p>Delete a destination by its ID.</p>
 
