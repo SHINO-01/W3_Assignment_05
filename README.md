@@ -4,7 +4,7 @@
 <h1>Travel API Documentation</h1>
 
 <p>Welcome to the Travel API project! This documentation provides an overview of the microservices, their endpoints, functionalities, and instructions on how to set up, run, test, and use the application.</p>
-<p>MUST USE PYTHON V3.11 or older</p>
+<p>This was made by python 3.12</p>
 <hr>
 
 <h2>Table of Contents</h2>
@@ -199,7 +199,7 @@
 <h3>Clone the Repository</h3>
 
 <pre><code>git clone https://github.com/SHINO-01/W3_Assignment_05.git
-cd travel-api
+cd W3_Assignment_05
 </code></pre>
 
 <h3>Create a Virtual Environment</h3>
@@ -237,7 +237,8 @@ python travel_api.py
 </code></pre>
 
 <p>This will start the Authentication Service on <code>http://localhost:5001</code>, User Service on <code>http://localhost:5000</code>, and the the Destination Service on <code>http://localhost:5002</code>.</p>
-<p>use /apidocs after the <code>https://localhost:5000/apidocs</code> to access the flasgger UI for easy Testing and Visualization. eg. <code>http://localhost:5000/apidocs</code></p>
+<p>use /apidocs after the <code>https://localhost:5000/apidocs</code> to access the flasgger UI for easy Testing and Visualization. eg. <code>http://localhost:5000/apidocs</code></p> <p>Note that you dont have to
+copy and paste the tokens into the header field of the UIs as it is done dynamically behind the scenes.</p>
 
 <hr>
 
@@ -247,14 +248,14 @@ python travel_api.py
 
 <h3>Run All Tests</h3>
 
-<pre><code>pytest --cov=.
+<pre><code>pytest --cov=. --cov-config=.coveragerc
 </code></pre>
 
 <p>This command runs all tests and generates a coverage report.</p>
 
 <h3>Interpreting the Coverage Report</h3>
 
-<p>After running the tests, you will see a coverage summary indicating the percentage of code covered by tests. The goal is to maintain at least 80% code coverage.</p>
+<p>After running the tests, you will see a coverage summary indicating the percentage of code covered by tests. The goal is to maintain at least 70% code coverage.</p>
 
 <hr>
 
@@ -262,7 +263,7 @@ python travel_api.py
 
 <h3>1. Login to the Admin Account</h3>
 
-<p>Login as Admin to use Admin Only functions.</p>
+<p>Login as Admin to use Admin Only functions. Use /login endpoint and paste the following data into the Json Body</p>
 
 <pre><code>
 Content-Type: application/json
@@ -368,12 +369,6 @@ Authorization: Bearer &lt;admin_access_token&gt;
     <li>If you encounter issues with tokens, make sure to login again to get a fresh token.</li>
     <li>Check the logs in the terminal for error messages.</li>
 </ul>
-
-<hr>
-
-<h2>Contributing</h2>
-
-<p>Contributions are welcome! Please fork the repository and submit a pull request with your changes.</p>
 
 <hr>
 
