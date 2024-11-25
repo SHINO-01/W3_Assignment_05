@@ -2,3 +2,5 @@
 /.env
 /secret.key
 __pycache__
+.coverage
+.pytest_cache
